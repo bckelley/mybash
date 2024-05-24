@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 RC='\e[0m'
 RED='\e[31m'
@@ -11,16 +11,24 @@ command_exists() {
 
 ## Function to grant sudo permissions to the current user
 grant_sudo_permissions() {
-    # Prompt for the root password
+    echo "Attempting to grant sudo permissions to user ${USER}. Please enter the root password if prompted."
     su -c "usermod -aG sudo ${USER}"
-    echo "Sudo permissions granted to user ${USER}"
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}Sudo permissions granted to user ${USER}.${RC}"
+        echo "Please log out and log back in, then re-run this script with sudo:"
+        echo "  sudo $0"
+        exit 0
+    else
+        echo -e "${RED}Failed to grant sudo permissions. Please run this script as root or ask an administrator to add you to the sudo group.${RC}"
+        exit 1
+    fi
 }
 
 # Check if the user is in the sudo group
-if id -nG "${USER}" | grep -qw "sudo"; then
-    echo "User ${USER} is already in the sudo group"
-else
+if ! id -nG "${USER}" | grep -qw "sudo"; then
     grant_sudo_permissions
+else
+    echo "User ${USER} is already in the sudo group."
 fi
 
 checkEnv() {
@@ -76,45 +84,26 @@ installDepend() {
     ## Check for dependencies.
     DEPENDENCIES='bash bash-completion tar neovim bat tree multitail'
     echo -e "${YELLOW}Installing dependencies...${RC}"
-    if [ "$PACKAGER" = "nala" ] || [ "$PACKAGER" = "apt" ]; then
-        for pkg in $DEPENDENCIES; do
-            read -p "Would you like to install $pkg package? [Y/n]: " choice
-            case "$choice" in
-                y|Y|'') sudo "$PACKAGER" install -y "$pkg" ;;
-                n|N) ;;
-                *) echo "Invalid choice. Defaulting to yes." && sudo "$PACKAGER" install -y "$pkg" ;;
-            esac
-        done
-    elif [ "$PACKAGER" = "yum" ] || [ "$PACKAGER" = "dnf" ]; then
-        for pkg in $DEPENDENCIES; do
-            read -p "Would you like to install $pkg package? [Y/n]: " choice
-            case "$choice" in
-                y|Y|'') sudo "$PACKAGER" install -y "$pkg" ;;
-                n|N) ;;
-                *) echo "Invalid choice. Defaulting to yes." && sudo "$PACKAGER" install -y "$pkg" ;;
-            esac
-        done
-    elif [ "$PACKAGER" = "pacman" ]; then
-        for pkg in $DEPENDENCIES; do
-            read -p "Would you like to install $pkg package? [Y/n]: " choice
-            case "$choice" in
-                y|Y|'') sudo "$PACKAGER" -S --noconfirm "$pkg" ;;
-                n|N) ;;
-                *) echo "Invalid choice. Defaulting to yes." && sudo "$PACKAGER" -S --noconfirm "$pkg" ;;
-            esac
-        done
-    elif [ "$PACKAGER" = "zypper" ]; then
-        for pkg in $DEPENDENCIES; do
-            read -p "Would you like to install $pkg package? [Y/n]: " choice
-            case "$choice" in
-                y|Y|'') sudo "$PACKAGER" install -y "$pkg" ;;
-                n|N) ;;
-                *) echo "Invalid choice. Defaulting to yes." && sudo "$PACKAGER" install -y "$pkg" ;;
-            esac
-        done
-    else
-        echo "Unsupported package manager: $PACKAGER"
-    fi
+    for pkg in $DEPENDENCIES; do
+        read -p "Would you like to install $pkg package? [Y/n]: " choice
+        case "$choice" in
+            y|Y|'') 
+                if [ "$PACKAGER" = "pacman" ]; then
+                    sudo "$PACKAGER" -S --noconfirm "$pkg"
+                else
+                    sudo "$PACKAGER" install -y "$pkg"
+                fi
+                ;;
+            n|N) ;;
+            *) echo "Invalid choice. Defaulting to yes." 
+                if [ "$PACKAGER" = "pacman" ]; then
+                    sudo "$PACKAGER" -S --noconfirm "$pkg"
+                else
+                    sudo "$PACKAGER" install -y "$pkg"
+                fi
+                ;;
+        esac
+    done
 }
 
 installOhMyPosh() {
