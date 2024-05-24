@@ -74,46 +74,30 @@ checkEnv() {
 
 installDepend() {
     ## Check for dependencies.
-    DEPENDENCIES='bash bash-completion tar neovim bat tree multitail'
+    DEPENDENCIES='bash bash-completion tar neovim bat tree multitail fastfetch'
     echo -e "${YELLOW}Installing dependencies...${RC}"
-    if [ "$PACKAGER" = "nala" ] || [ "$PACKAGER" = "apt" ]; then
-        for pkg in $DEPENDENCIES; do
-            read -p "Would you like to install $pkg package? [Y/n]: " choice
-            case "$choice" in
-                y|Y|'') sudo "$PACKAGER" install -y "$pkg" ;;
-                n|N) ;;
-                *) echo "Invalid choice. Defaulting to yes." && sudo "$PACKAGER" install -y "$pkg" ;;
-            esac
-        done
-    elif [ "$PACKAGER" = "yum" ] || [ "$PACKAGER" = "dnf" ]; then
-        for pkg in $DEPENDENCIES; do
-            read -p "Would you like to install $pkg package? [Y/n]: " choice
-            case "$choice" in
-                y|Y|'') sudo "$PACKAGER" install -y "$pkg" ;;
-                n|N) ;;
-                *) echo "Invalid choice. Defaulting to yes." && sudo "$PACKAGER" install -y "$pkg" ;;
-            esac
-        done
-    elif [ "$PACKAGER" = "pacman" ]; then
-        for pkg in $DEPENDENCIES; do
-            read -p "Would you like to install $pkg package? [Y/n]: " choice
-            case "$choice" in
-                y|Y|'') sudo "$PACKAGER" -S --noconfirm "$pkg" ;;
-                n|N) ;;
-                *) echo "Invalid choice. Defaulting to yes." && sudo "$PACKAGER" -S --noconfirm "$pkg" ;;
-            esac
-        done
-    elif [ "$PACKAGER" = "zypper" ]; then
-        for pkg in $DEPENDENCIES; do
-            read -p "Would you like to install $pkg package? [Y/n]: " choice
-            case "$choice" in
-                y|Y|'') sudo "$PACKAGER" install -y "$pkg" ;;
-                n|N) ;;
-                *) echo "Invalid choice. Defaulting to yes." && sudo "$PACKAGER" install -y "$pkg" ;;
-            esac
-        done
+    if [ "$PACKAGER" = "pacman" ]; then
+        if ! command_exists yay && ! command_exists paru; then
+            echo "Installing yay as AUR helper..."
+            sudo pacman --noconfirm -S base-devel
+            cd /opt && sudo git clone https://aur.archlinux.org/yay-git.git && sudo chown -R "${USER}:${USER}" ./yay-git
+            cd yay-git && makepkg --noconfirm -si
+        else
+            echo "Aur helper already installed"
+        fi
+        if command_exists yay; then
+            AUR_HELPER="yay"
+        elif command_exists paru; then
+            AUR_HELPER="paru"
+        else
+            echo "No AUR helper found. Please install yay or paru."
+            exit 1
+        fi
+        "${AUR_HELPER}" --noconfirm -S ${DEPENDENCIES}
+    elif [ "$PACKAGER" = "nala" ] || [ "$PACKAGER" = "apt" ]; then
+        sudo "$PACKAGER" install -y ${DEPENDENCIES}
     else
-        echo "Unsupported package manager: $PACKAGER"
+        sudo "$PACKAGER" install -yq ${DEPENDENCIES}
     fi
 }
 
@@ -156,14 +140,9 @@ installFastfetch() {
         return
     fi
 
-    echo -e "${YELLOW}Installing fastfetch...${RC}"
-    if [ "$PACKAGER" = "nala" ] || [ "$PACKAGER" = "apt" ]; then
-        if ! curl -sSL https://github.com/fastfetch-cli/fastfetch/releases/download/2.13.2/fastfetch-linux-amd64.deb -o fastfetch-linux-amd64.deb || ! sudo dpkg -i fastfetch-linux-amd64.deb; then
-            echo -e "${RED}Something went wrong during fastfetch install${RC}"
-            exit 1
-        fi
-    else
-        sudo "$PACKAGER" install -y fastfetch
+    if ! curl -sSL https://github.com/fastfetch-cli/fastfetch/releases/download/2.13.2/fastfetch-linux-amd64.deb -o fastfetch-linux-amd64.deb || ! sudo dpkg -i fastfetch-linux-amd64.deb; then
+        echo -e "${RED}Something went wrong during fastfetch install${RC}"
+        exit 1
     fi
 }
 
