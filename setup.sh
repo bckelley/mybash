@@ -13,7 +13,7 @@ checkEnv() {
 
     if [ "$(id -u)" != "0" ]; then
         echo -e "${RED}This script must be run as root.${RC}" 1>&2
-        exit 1
+        exit 0
     fi
 
     ## Check for requirements.
@@ -21,7 +21,7 @@ checkEnv() {
     for req in ${REQUIREMENTS}; do
         if ! command_exists "$req"; then
             echo -e "${RED}To run me, you need: ${req}${RC}"
-            exit 1
+            exit 0
         fi
     done
 
@@ -37,14 +37,14 @@ checkEnv() {
 
     if [ -z "${PACKAGER}" ]; then
         echo -e "${RED}Can't find a supported package manager${RC}"
-        exit 1
+        exit 0
     fi
 
     ## Check if the current directory is writable.
     GITPATH="$(dirname "$(realpath "$0")")"
     if [ ! -w "${GITPATH}" ]; then
         echo -e "${RED}Can't write to ${GITPATH}${RC}"
-        exit 1
+        exit 0
     fi
 
     ## Check SuperUser Group
@@ -60,7 +60,7 @@ checkEnv() {
     ## Check if member of the sudo group.
     if ! groups | grep -q "$SUGROUP"; then
         echo -e "${RED}You need to be a member of the sudo group to run me!${RC}"
-        exit 1
+        exit 0
     fi
 }
 
@@ -98,7 +98,7 @@ installOhMyPosh() {
 
     if ! curl -sS https://ohmyposh.dev/install.sh | bash -s; then
         echo -e "${RED}Something went wrong during oh-my-posh install!${RC}"
-        exit 1
+        exit 0
     fi
 
     oh-my-posh font install
@@ -119,7 +119,7 @@ installZoxide() {
 
     if ! curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh; then
         echo -e "${RED}Something went wrong during zoxide install!${RC}"
-        exit 1
+        exit 0
     fi
 }
 
@@ -133,7 +133,7 @@ installFastfetch() {
     if [ "$PACKAGER" = "nala" ] || [ "$PACKAGER" = "apt" ]; then
         if ! curl -sSL https://github.com/fastfetch-cli/fastfetch/releases/download/2.13.2/fastfetch-linux-amd64.deb -o fastfetch-linux-amd64.deb || ! sudo dpkg -i fastfetch-linux-amd64.deb; then
             echo -e "${RED}Something went wrong during fastfetch install${RC}"
-            exit 1
+            exit 0
         fi
     else
         sudo "$PACKAGER" install -y fastfetch
@@ -158,7 +158,7 @@ linkConfig() {
         echo -e "${YELLOW}Moving old bash config file to ${USER_HOME}/.bashrc.bak${RC}"
         if ! mv "${OLD_BASHRC}" "${USER_HOME}/.bashrc.bak"; then
             echo -e "${RED}Can't move the old bash config file!${RC}"
-            exit 1
+            exit 0
         fi
     fi
 
