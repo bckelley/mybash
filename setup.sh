@@ -9,14 +9,13 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-check_root() {
+checkEnv() {
+
     if [ "$(id -u)" != "0" ]; then
         echo -e "${RED}This script must be run as root.${RC}" 1>&2
         exit 1
     fi
-}
 
-checkEnv() {
     ## Check for requirements.
     REQUIREMENTS='curl groups sudo'
     for req in ${REQUIREMENTS}; do
