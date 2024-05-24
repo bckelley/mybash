@@ -9,30 +9,12 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-## Function to grant sudo permissions to the current user
-grant_sudo_permissions() {
-    echo "Granting sudo permissions to user ${USER}"
-    sudo usermod -aG sudo "${USER}"
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}Sudo permissions granted to user ${USER}.${RC}"
-    else
-        echo -e "${RED}Failed to grant sudo permissions.${RC}"
+check_root() {
+    if [ "$(id -u)" != "0" ]; then
+        echo -e "${RED}This script must be run as root.${RC}" 1>&2
         exit 1
     fi
 }
-
-# Check if the user is in the sudo group
-if ! id -nG "${USER}" | grep -qw "sudo"; then
-    if [ "$EUID" -ne 0 ]; then
-        echo "This script needs sudo privileges to add the user to the sudo group."
-        echo "Please enter the sudo password to proceed."
-        grant_sudo_permissions
-    else
-        echo "User ${USER} is already in the sudo group."
-    fi
-else
-    echo "User ${USER} is already in the sudo group."
-fi
 
 checkEnv() {
     ## Check for requirements.
